@@ -36,6 +36,7 @@ public:
 		return env.pExecutor;
 	};
 
+	//if daemon, solo minining
 	void ex_start(bool daemon) { daemon ? ex_main() : std::thread(&executor::ex_main, this).detach(); }
 
 	void get_http_report(ex_event_name ev_id, std::string& data);

@@ -45,7 +45,7 @@
 #include <iostream>
 
 #ifndef CONF_NO_TLS
-#include <openssl/ssl.h>
+//#include <openssl/ssl.h>
 #include <openssl/err.h>
 #endif
 

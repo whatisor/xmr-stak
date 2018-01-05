@@ -439,7 +439,7 @@ void minethd::work_main()
 			}
 
 			*piNonce = ++result.iNonce;
-
+			//Core hashing
 			hash_fun(oWork.bWorkBlob, oWork.iWorkSize, result.bResult, ctx);
 
 			if (*piHashVal < oWork.iTarget)

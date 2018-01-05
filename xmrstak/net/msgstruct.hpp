@@ -6,7 +6,11 @@
 
 // Structures that we use to pass info between threads constructors are here just to make
 // the stack allocation take up less space, heap is a shared resouce that needs locks too of course
-
+//Example 
+/*data from pool: {"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"300955505552701","job": 
+{"blob":"0202b4d88cd005723910a7844c6cf04bb10af456fdf6e4b352e1839747d3e971117b7550da82550000000028b751d55f1b5c591ef82e4ec90a621a32f48044e8e112fa8ff4be5b3b046a6a04",
+"job_id":"129359229584224","target":"9bc42000"},"status":"OK"}}
+*/
 struct pool_job
 {
 	char		sJobID[64];

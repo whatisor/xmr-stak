@@ -176,8 +176,11 @@ void minethd::consume_work()
 
 }
 
+//k3 hashing
 void minethd::work_main()
 {
+	//Chec if enable affinity for threading(minor). Affinity is a kind of good Threads Scheduling feature from CPU.
+	//Advanced thing, require hwloc for NUMA (non-uniform memory access)
 	if(affinity >= 0) //-1 means no affinity
 		bindMemoryToNUMANode(affinity);
 
@@ -213,6 +216,8 @@ void minethd::work_main()
 
 		assert(sizeof(job_result::sJobID) == sizeof(pool_job::sJobID));
 		uint64_t target = oWork.iTarget;
+
+		//Pass input to kernels
 		XMRSetJob(pGpuCtx, oWork.bWorkBlob, oWork.iWorkSize, target);
 
 		if(oWork.bNiceHash)

@@ -355,6 +355,7 @@ void executor::on_sock_error(size_t pool_id, std::string&& sError, bool silent)
 		printer::inst()->print_msg(L1, "Dev pool socket error - mining on user pool...");
 }
 
+//Get job from pool
 void executor::on_pool_have_job(size_t pool_id, pool_job& oPoolJob)
 {
 	if(pool_id != current_pool_id)
@@ -380,12 +381,14 @@ void executor::on_pool_have_job(size_t pool_id, pool_job& oPoolJob)
 	if(pool->is_dev_pool())
 		return;
 
+	//Just for fun =)
 	if(iPoolDiff != pool->get_current_diff())
 	{
 		iPoolDiff = pool->get_current_diff();
 		printer::inst()->print_msg(L2, "Difficulty changed. Now: %llu.", int_port(iPoolDiff));
 	}
 
+	//no need, we support single pool
 	if(dat.pool_id != pool_id)
 	{
 		jpsock* prev_pool;
@@ -462,6 +465,10 @@ void executor::on_miner_result(size_t pool_id, job_result& oResult)
 #ifndef _WIN32
 
 #include <signal.h>
+/*The process received a SIGPIPE . The default behaviour for this signal is to end the process.
+ A SIGPIPE is sent to a process if it tried to write to a socket that had been shutdown for 
+ writing or isn't connected (anymore).
+ To avoid that the program ends in this case, you could either. make the process ignore SIGPIPE*/
 void disable_sigpipe()
 {
 	struct sigaction sa;
@@ -475,15 +482,17 @@ void disable_sigpipe()
 #else
 inline void disable_sigpipe() {}
 #endif
-
+//k0 - start miner
 void executor::ex_main()
 {
 	disable_sigpipe();
 
 	assert(1000 % iTickTime == 0);
 
+	//Mining work data
 	xmrstak::miner_work oWork = xmrstak::miner_work();
 
+	//run on thread
 	// \todo collect all backend threads
 	pvThreads = xmrstak::BackendConnector::thread_starter(oWork);
 
@@ -493,6 +502,7 @@ void executor::ex_main()
 		win_exit();
 	}
 
+	//What is it for? Just collect result ?
 	telem = new xmrstak::telemetry(pvThreads->size());
 
 	set_timestamp();
@@ -521,7 +531,7 @@ void executor::ex_main()
 			const char* wallet = params.poolUsername.empty() ? cfg.sWalletAddr : params.poolUsername.c_str();
 			const char* pwd = params.userSetPwd ? params.poolPasswd.c_str() : cfg.sPasswd;
 			bool nicehash = cfg.nicehash || params.nicehashMode;
-			
+			//similar to push_back
 			pools.emplace_back(i+1, cfg.sPoolAddr, wallet, pwd, 9.9, false, params.poolUseTls, cfg.tls_fingerprint, nicehash);
 		}
 		else
@@ -542,6 +552,7 @@ void executor::ex_main()
 
 	if(jconf::inst()->IsCurrencyMonero())
 	{
+		//donate to author :)
 		if(dev_tls)
 			pools.emplace_front(0, "donate.xmr-stak.net:6666", "", "", 0.0, true, true, "", false);
 		else
@@ -558,10 +569,11 @@ void executor::ex_main()
 	ex_event ev;
 	std::thread clock_thd(&executor::ex_clock_thd, this);
 
+	//Test and connect to pool
 	eval_pool_choice();
 
 	// Place the default success result at position 0, it needs to
-	// be here even if our first result is a failure
+	// be here even if our first result is a failure??? What is this heck for?
 	vMineResults.emplace_back();
 
 	// If the user requested it, start the autohash printer
@@ -574,7 +586,7 @@ void executor::ex_main()
 		ev = oEventQ.pop();
 		switch (ev.iName)
 		{
-		case EV_SOCK_READY:
+		case EV_SOCK_READY://Connection is ready
 			on_sock_ready(ev.iPoolId);
 			break;
 
@@ -582,7 +594,7 @@ void executor::ex_main()
 			on_sock_error(ev.iPoolId, std::move(ev.oSocketError.sSocketError), ev.oSocketError.silent);
 			break;
 
-		case EV_POOL_HAVE_JOB:
+		case EV_POOL_HAVE_JOB://Get job from pool
 			on_pool_have_job(ev.iPoolId, ev.oPoolJob);
 			break;
 
