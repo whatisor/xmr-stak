@@ -235,7 +235,7 @@ void minethd::work_main()
 			memset(results,0,sizeof(cl_uint)*(0x100));
 
 			XMRRunJob(pGpuCtx, results);
-
+			//results[0xFF] number of hashvalue
 			for(size_t i = 0; i < results[0xFF]; i++)
 			{
 				uint8_t	bWorkBlob[112];
@@ -244,9 +244,11 @@ void minethd::work_main()
 				memcpy(bWorkBlob, oWork.bWorkBlob, oWork.iWorkSize);
 				memset(bResult, 0, sizeof(job_result::bResult));
 
+				//pass nonce to cpu mining?
 				*(uint32_t*)(bWorkBlob + 39) = results[i];
 
 				hash_fun(bWorkBlob, oWork.iWorkSize, bResult, cpu_ctx);
+				//Check result at bResult + 24 address
 				if ( (*((uint64_t*)(bResult + 24))) < oWork.iTarget)
 					executor::inst()->push_event(ex_event(job_result(oWork.sJobID, results[i], bResult, iThreadNo), oWork.iPoolId));
 				else

@@ -393,6 +393,7 @@ void minethd::work_main()
 	hash_fun = func_selector(::jconf::inst()->HaveHardwareAes(), bNoPrefetch, ::jconf::inst()->IsCurrencyMonero());
 	ctx = minethd_alloc_ctx();
 
+	//result at bResult + 24 address
 	piHashVal = (uint64_t*)(result.bResult + 24);
 	piNonce = (uint32_t*)(oWork.bWorkBlob + 39);
 	globalStates::inst().inst().iConsumeCnt++;

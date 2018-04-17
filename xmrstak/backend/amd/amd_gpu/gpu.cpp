@@ -269,6 +269,10 @@ size_t InitOpenCLGpu(cl_context opencl_ctx, GpuContext* ctx, const char* source_
 	}
 
 	size_t g_thd = ctx->rawIntensity;
+
+	//extrabufffers usage:
+	//(uint4 *Scratchpad, ulong *states, uint *Branch0, uint *Branch1, uint *Branch2, uint *Branch3
+
 	ctx->ExtraBuffers[0] = clCreateBuffer(opencl_ctx, CL_MEM_READ_WRITE, hashMemSize * g_thd, NULL, &ret);
 	if(ret != CL_SUCCESS)
 	{
@@ -871,6 +875,9 @@ size_t XMRRunJob(GpuContext* ctx, cl_uint* HashOutput)
 	// number of global threads must be a multiple of the work group size (w_size)
 	assert(g_thd%w_size == 0);
 
+
+	//dont use ctx->ExtraBuffers[0] and ctx->ExtraBuffers[1]????????
+	////set all to 0 (zero)
 	for(int i = 2; i < 6; ++i)
 	{
 		if((ret = clEnqueueWriteBuffer(ctx->CommandQueues, ctx->ExtraBuffers[i], CL_FALSE, sizeof(cl_uint) * g_intensity, sizeof(cl_uint), &zero, 0, NULL, NULL)) != CL_SUCCESS)
@@ -880,6 +887,7 @@ size_t XMRRunJob(GpuContext* ctx, cl_uint* HashOutput)
 		}
 	}
 
+	//set all output to 0, offset is 0xFF ???
 	if((ret = clEnqueueWriteBuffer(ctx->CommandQueues, ctx->OutputBuffer, CL_FALSE, sizeof(cl_uint) * 0xFF, sizeof(cl_uint), &zero, 0, NULL, NULL)) != CL_SUCCESS)
 	{
 		printer::inst()->print_msg(L1,"Error %s when calling clEnqueueReadBuffer to fetch results.", err_to_str(ret));
@@ -889,6 +897,7 @@ size_t XMRRunJob(GpuContext* ctx, cl_uint* HashOutput)
 	clFinish(ctx->CommandQueues);
 
 	size_t Nonce[2] = {ctx->Nonce, 1}, gthreads[2] = { g_thd, 8 }, lthreads[2] = { w_size, 8 };
+	//cn0
 	if((ret = clEnqueueNDRangeKernel(ctx->CommandQueues, ctx->Kernels[0], 2, Nonce, gthreads, lthreads, 0, NULL, NULL)) != CL_SUCCESS)
 	{
 		printer::inst()->print_msg(L1,"Error %s when calling clEnqueueNDRangeKernel for kernel %d.", err_to_str(ret), 0);
@@ -903,7 +912,7 @@ size_t XMRRunJob(GpuContext* ctx, cl_uint* HashOutput)
 			return(ERR_OCL_API);
 		}
 	}*/
-
+	//cn1
 	size_t tmpNonce = ctx->Nonce;
 	if((ret = clEnqueueNDRangeKernel(ctx->CommandQueues, ctx->Kernels[1], 1, &tmpNonce, &g_thd, &w_size, 0, NULL, NULL)) != CL_SUCCESS)
 	{
@@ -911,12 +920,14 @@ size_t XMRRunJob(GpuContext* ctx, cl_uint* HashOutput)
 		return ERR_OCL_API;
 	}
 
+	//cn2
 	if((ret = clEnqueueNDRangeKernel(ctx->CommandQueues, ctx->Kernels[2], 2, Nonce, gthreads, lthreads, 0, NULL, NULL)) != CL_SUCCESS)
 	{
 		printer::inst()->print_msg(L1,"Error %s when calling clEnqueueNDRangeKernel for kernel %d.", err_to_str(ret), 2);
 		return ERR_OCL_API;
 	}
 
+	//BranchNonces is calculated by cn0,cn1,cn2
 	if((ret = clEnqueueReadBuffer(ctx->CommandQueues, ctx->ExtraBuffers[2], CL_FALSE, sizeof(cl_uint) * g_intensity, sizeof(cl_uint), BranchNonces, 0, NULL, NULL)) != CL_SUCCESS)
 	{
 		printer::inst()->print_msg(L1,"Error %s when calling clEnqueueReadBuffer to fetch results.", err_to_str(ret));
@@ -943,6 +954,7 @@ size_t XMRRunJob(GpuContext* ctx, cl_uint* HashOutput)
 
 	clFinish(ctx->CommandQueues);
 
+	//step 5 - hashing parallel using 4 hashig algs   "Blake", "Groestl", "JH", "Skein"
 	for(int i = 0; i < 4; ++i)
 	{
 		if(BranchNonces[i])
@@ -967,6 +979,7 @@ size_t XMRRunJob(GpuContext* ctx, cl_uint* HashOutput)
 		}
 	}
 
+	//Read out nonce array, final unint is length of array
 	if((ret = clEnqueueReadBuffer(ctx->CommandQueues, ctx->OutputBuffer, CL_TRUE, 0, sizeof(cl_uint) * 0x100, HashOutput, 0, NULL, NULL)) != CL_SUCCESS)
 	{
 		printer::inst()->print_msg(L1,"Error %s when calling clEnqueueReadBuffer to fetch results.", err_to_str(ret));

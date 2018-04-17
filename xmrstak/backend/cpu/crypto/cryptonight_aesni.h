@@ -220,6 +220,8 @@ void cn_implode_scratchpad(const __m128i* input, __m128i* output)
 	__m128i xout0, xout1, xout2, xout3, xout4, xout5, xout6, xout7;
 	__m128i k0, k1, k2, k3, k4, k5, k6, k7, k8, k9;
 
+/*Sequentially pass through the mixing buffer and use 10 rounds
+     * of AES encryption to mix the random data back into the 'text' buffer.  'text'*/
 	aes_genkey<SOFT_AES>(output + 2, &k0, &k1, &k2, &k3, &k4, &k5, &k6, &k7, &k8, &k9);
 
 	xout0 = _mm_load_si128(output + 4);
@@ -290,9 +292,11 @@ void cn_implode_scratchpad(const __m128i* input, __m128i* output)
 template<size_t MASK, size_t ITERATIONS, size_t MEM, bool SOFT_AES, bool PREFETCH>
 void cryptonight_hash(const void* input, size_t len, void* output, cryptonight_ctx* ctx0)
 {
+	//Step 1
 	keccak((const uint8_t *)input, len, ctx0->hash_state, 200);
 
 	// Optim - 99% time boundary
+	//Step 2
 	cn_explode_scratchpad<MEM, SOFT_AES, PREFETCH>((__m128i*)ctx0->hash_state, (__m128i*)ctx0->long_state);
 
 	uint8_t* l0 = ctx0->long_state;
@@ -305,6 +309,7 @@ void cryptonight_hash(const void* input, size_t len, void* output, cryptonight_c
 	uint64_t idx0 = h0[0] ^ h0[4];
 
 	// Optim - 90% time boundary
+	//Step 3
 	for(size_t i = 0; i < ITERATIONS; i++)
 	{
 		__m128i cx;
@@ -341,10 +346,12 @@ void cryptonight_hash(const void* input, size_t len, void* output, cryptonight_c
 	}
 
 	// Optim - 90% time boundary
+	// Step 4
 	cn_implode_scratchpad<MEM, SOFT_AES, PREFETCH>((__m128i*)ctx0->long_state, (__m128i*)ctx0->hash_state);
 
 	// Optim - 99% time boundary
 
+	//Step 5
 	keccakf((uint64_t*)ctx0->hash_state, 24);
 	extra_hashes[ctx0->hash_state[0] & 3](ctx0->hash_state, 200, (char*)output);
 }

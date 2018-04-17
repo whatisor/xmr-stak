@@ -116,7 +116,7 @@ static const __constant uchar sbox[256] =
 	0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16
 };
 
-
+//No use
 void keccakf1600(ulong *s)
 {
     for(int i = 0; i < 24; ++i) 
@@ -177,6 +177,8 @@ static const __constant uint keccakf_piln[24] =
     15, 23, 19, 13, 12, 2, 20, 14, 22, 9,  6,  1 
 };
 
+//Nested loop version of  keccakf1600_2.
+// no use
 void keccakf1600_1(ulong *st)
 {
     int i, round;
@@ -367,7 +369,7 @@ void keccakf1600_2(ulong *st)
 
 )==="
 R"===(
-
+//No use
 void CNKeccak(ulong *output, ulong *input)
 {
 	ulong st[25];
